@@ -87,4 +87,123 @@ class TicketTest extends TestCase
 
         $this->assertCount(3, $response->json('data'));
     }
+
+    public function test_tickets_can_be_filtered_by_priority(): void
+    {
+        $user = User::factory()->create();
+
+        Ticket::factory()->create([
+            'user_id' => $user->id,
+            'priority' => 'high',
+        ]);
+
+        Ticket::factory()->create([
+            'user_id' => $user->id,
+            'priority' => 'low',
+        ]);
+
+        $response = $this->getJson('/api/tickets?priority=high');
+
+        $response->assertOk();
+
+        $this->assertCount(1, $response->json('data'));
+
+        $this->assertEquals(
+            'high',
+            $response->json('data.0.priority')
+        );
+    }
+
+    public function test_user_can_view_a_single_ticket(): void
+{
+    $user = User::factory()->create();
+
+    $ticket = Ticket::factory()->create([
+        'user_id' => $user->id,
+        'title' => 'Payment issue',
+    ]);
+
+    $response = $this->getJson(
+        "/api/tickets/{$ticket->id}"
+    );
+
+    $response
+        ->assertOk()
+        ->assertJsonPath(
+            'data.id',
+            $ticket->id
+        )
+        ->assertJsonPath(
+            'data.title',
+            'Payment issue'
+        );
+}
+
+public function test_user_can_update_a_ticket(): void
+{
+    $user = User::factory()->create();
+
+    $ticket = Ticket::factory()->create([
+        'user_id' => $user->id,
+        'priority' => 'low',
+    ]);
+
+    $response = $this->putJson(
+        "/api/tickets/{$ticket->id}",
+        [
+            'title' => 'Updated payment issue',
+            'priority' => 'urgent',
+        ]
+    );
+
+    $response
+        ->assertOk()
+        ->assertJsonPath(
+            'data.title',
+            'Updated payment issue'
+        )
+        ->assertJsonPath(
+            'data.priority',
+            'urgent'
+        );
+
+    $this->assertDatabaseHas('tickets', [
+        'id' => $ticket->id,
+        'title' => 'Updated payment issue',
+        'priority' => 'urgent',
+    ]);
+}
+
+public function test_user_can_delete_a_ticket(): void
+{
+    $user = User::factory()->create();
+
+    $ticket = Ticket::factory()->create([
+        'user_id' => $user->id,
+    ]);
+
+    $response = $this->deleteJson(
+        "/api/tickets/{$ticket->id}"
+    );
+
+    $response->assertNoContent();
+
+    $this->assertDatabaseMissing('tickets', [
+        'id' => $ticket->id,
+    ]);
+}
+
+public function test_viewing_non_existing_ticket_returns_404(): void
+{
+    $response = $this->getJson('/api/tickets/99999');
+
+    $response->assertNotFound();
+}
+
+public function test_deleting_non_existing_ticket_returns_404(): void
+{
+    $response = $this->deleteJson('/api/tickets/99999');
+
+    $response->assertNotFound();
+}
 }

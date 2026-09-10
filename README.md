@@ -64,3 +64,21 @@ php artisan test
 - API Resources control response structure.
 - Eager loading prevents N+1 queries.
 - Pagination prevents large unbounded responses.
+
+## Assumptions
+
+1. Authentication/authorization is outside the core assessment scope.
+
+2. user_id is supplied during ticket creation. In a production
+   authenticated application, it would be derived from the
+   authenticated user.
+
+3. Ticket status transitions follow:
+   open → in_progress → resolved → closed.
+
+4. SQLite is used to keep the assessment self-contained.
+   The application can be configured for MySQL/PostgreSQL.
+
+5. Search currently uses database LIKE matching. For very large
+   datasets, full-text search or a dedicated search engine can
+   be considered.
